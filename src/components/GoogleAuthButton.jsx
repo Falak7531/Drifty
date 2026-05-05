@@ -1,5 +1,4 @@
-import React from 'react';
-import { useGoogleAuth } from '../contexts/GoogleAuthContext';
+import useGoogleAuth from '../contexts/useGoogleAuth';
 
 const GoogleAuthButton = () => {
   const { isAuthenticated, user, loading, error, signIn, signOut } = useGoogleAuth();

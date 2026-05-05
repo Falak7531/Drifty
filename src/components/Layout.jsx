@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, Calendar, Users, LogIn } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Calendar, Users } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -9,14 +9,16 @@ const Layout = ({ children }) => {
     { to: '/tasks', label: 'Tasks', icon: CheckSquare },
     { to: '/calendar', label: 'Calendar', icon: Calendar },
     { to: '/meetings', label: 'Meetings', icon: Users },
-    { to: '/login', label: 'Login', icon: LogIn },
   ];
 
   return (
     <div className="flex h-screen">
-      <aside className="fixed left-0 top-0 w-64 h-full bg-gray-900 text-white p-6 shadow-lg">
-        <h2 className="text-2xl font-bold mb-8 text-center">Menu</h2>
-        <ul className="space-y-4">
+      <aside className="fixed left-0 top-0 w-72 h-full bg-gray-900 text-white p-6 shadow-lg">
+        <div className="mb-10 text-center">
+          <h2 className="text-3xl font-bold">Worry</h2>
+          <p className="text-sm text-slate-300 mt-2">Task Management</p>
+        </div>
+        <ul className="space-y-3">
           {menuItems.map(item => (
             <li key={item.to}>
               <Link
@@ -34,7 +36,7 @@ const Layout = ({ children }) => {
           ))}
         </ul>
       </aside>
-      <main className="ml-64 flex-1 overflow-y-auto p-6 bg-gray-50">
+      <main className="ml-72 flex-1 overflow-y-auto p-6 bg-gray-50">
         {children}
       </main>
     </div>

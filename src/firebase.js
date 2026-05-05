@@ -11,6 +11,17 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+console.log('Firebase config loaded:', {
+  apiKey: firebaseConfig.apiKey ? '***' + firebaseConfig.apiKey.slice(-4) : 'NOT SET',
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+});
+
+// Check for placeholder values
+if (firebaseConfig.apiKey === 'your_api_key_here' || !firebaseConfig.apiKey) {
+  throw new Error('Firebase config not set up. Please update .env with real Firebase project values from https://console.firebase.google.com/');
+}
+
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);

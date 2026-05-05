@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   initGoogleAPI,
   signInToGoogle,
@@ -6,16 +6,7 @@ import {
   getCurrentUser,
   getAccessToken
 } from '../googleCalendar';
-
-const GoogleAuthContext = createContext();
-
-export const useGoogleAuth = () => {
-  const context = useContext(GoogleAuthContext);
-  if (!context) {
-    throw new Error('useGoogleAuth must be used within a GoogleAuthProvider');
-  }
-  return context;
-};
+import { GoogleAuthContext } from './GoogleAuthContextObject';
 
 export const GoogleAuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

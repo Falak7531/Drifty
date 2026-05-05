@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 
 // Dummy users for local state
 const dummyUsers = [
@@ -9,7 +8,6 @@ const dummyUsers = [
 ];
 
 const TasksPage = () => {
-  const { user } = useAuth();
   // For testing, assume Admin role
   const isAdmin = true; // role === 'Admin';
   const [tasks, setTasks] = useState([
@@ -106,7 +104,7 @@ const TasksPage = () => {
     if (!newComment.trim()) return;
     const comment = {
       id: Date.now().toString(),
-      user: user?.displayName || user?.email || 'Anonymous',
+      user: 'Anonymous',
       text: newComment,
       timestamp: new Date().toISOString(),
     };

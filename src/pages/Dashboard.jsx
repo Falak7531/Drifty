@@ -1,41 +1,39 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { LayoutDashboard, CheckCircle, Clock, AlertTriangle, Play, Calendar, User, Activity } from 'lucide-react';
 
 const Dashboard = () => {
-  // Dummy data
-  const [stats, setStats] = useState({
+  const stats = {
     totalTasks: 24,
     completedTasks: 18,
     pendingTasks: 4,
     overdueTasks: 2,
     inProgressTasks: 5,
-  });
+  };
 
-  const [upcomingDeadlines] = useState([
+  const upcomingDeadlines = [
     { id: 1, title: 'Design homepage mockup', assignedTo: 'John Doe', deadline: new Date('2026-05-10'), status: 'In Progress', urgent: true },
     { id: 2, title: 'Fix login bug', assignedTo: 'Jane Smith', deadline: new Date('2026-05-12'), status: 'Pending', urgent: false },
     { id: 3, title: 'Update user documentation', assignedTo: 'Bob Johnson', deadline: new Date('2026-05-15'), status: 'To Do', urgent: false },
-  ]);
+  ];
 
-  const [nextMeeting] = useState({
+  const nextMeeting = {
     title: 'Weekly Team Standup',
     date: new Date('2026-05-08T10:00:00'),
     description: 'Discuss project progress and blockers',
-  });
+  };
 
-  const [myTasks] = useState([
+  const myTasks = [
     { id: 1, title: 'Review pull request', status: 'In Progress', deadline: new Date('2026-05-09') },
     { id: 2, title: 'Update API documentation', status: 'Pending', deadline: new Date('2026-05-11') },
     { id: 3, title: 'Test new feature', status: 'To Do', deadline: new Date('2026-05-13') },
-  ]);
+  ];
 
-  const [recentActivity] = useState([
+  const recentActivity = [
     { id: 1, action: 'Task completed: Design homepage mockup', timestamp: new Date('2026-05-05T14:30:00') },
     { id: 2, action: 'Task updated: Fix login bug', timestamp: new Date('2026-05-05T12:15:00') },
     { id: 3, action: 'Task assigned: Update user documentation', timestamp: new Date('2026-05-05T10:45:00') },
     { id: 4, action: 'Task completed: Setup CI/CD pipeline', timestamp: new Date('2026-05-04T16:20:00') },
-  ]);
+  ];
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">

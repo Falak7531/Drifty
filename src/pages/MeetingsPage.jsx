@@ -1,10 +1,8 @@
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useGoogleAuth } from '../contexts/GoogleAuthContext';
+import { useState, useEffect } from 'react';
+import useGoogleAuth from '../contexts/useGoogleAuth';
 import GoogleAuthButton from '../components/GoogleAuthButton';
 
 const MeetingsPage = () => {
-  const { user, role } = useAuth();
   const { isAuthenticated: isGoogleAuthenticated } = useGoogleAuth();
   const [meetings, setMeetings] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -34,50 +32,57 @@ const MeetingsPage = () => {
   // For testing, assume Admin role
   const userRole = 'admin'; // role === 'Admin';
 
-  const loadMeetings = async () => {
-    try {
-      // For now, use local state instead of Firebase
-      // const fetchedMeetings = await fetchMeetings();
-      // setMeetings(fetchedMeetings);
+  useEffect(() => {
+    let active = true;
 
-      // Sample data for demonstration
-      const sampleMeetings = [
-        {
-          id: '1',
-          title: 'Weekly Team Standup',
-          date: new Date('2026-05-15'),
-          time: '10:00',
-          description: 'Daily standup meeting to discuss progress',
-          meetingType: 'Team Meeting',
-          createdBy: 'admin-uid',
-          googleCalendarEventId: null
-        },
-        {
-          id: '2',
-          title: 'Project Review with CEO',
-          date: new Date('2026-05-10'),
-          time: '14:00',
-          description: 'Monthly project review and planning session',
-          meetingType: 'Head Meeting',
-          createdBy: 'admin-uid',
-          googleCalendarEventId: null
-        },
-        {
-          id: '3',
-          title: 'Past Team Meeting',
-          date: new Date('2026-04-01'),
-          time: '11:00',
-          description: 'Completed team meeting from last month',
-          meetingType: 'Team Meeting',
-          createdBy: 'admin-uid',
-          googleCalendarEventId: null
+    const loadMeetings = async () => {
+      try {
+        const sampleMeetings = [
+          {
+            id: '1',
+            title: 'Weekly Team Standup',
+            date: new Date('2026-05-15'),
+            time: '10:00',
+            description: 'Daily standup meeting to discuss progress',
+            meetingType: 'Team Meeting',
+            createdBy: 'admin-uid',
+            googleCalendarEventId: null
+          },
+          {
+            id: '2',
+            title: 'Project Review with CEO',
+            date: new Date('2026-05-10'),
+            time: '14:00',
+            description: 'Monthly project review and planning session',
+            meetingType: 'Head Meeting',
+            createdBy: 'admin-uid',
+            googleCalendarEventId: null
+          },
+          {
+            id: '3',
+            title: 'Past Team Meeting',
+            date: new Date('2026-04-01'),
+            time: '11:00',
+            description: 'Completed team meeting from last month',
+            meetingType: 'Team Meeting',
+            createdBy: 'admin-uid',
+            googleCalendarEventId: null
+          }
+        ];
+
+        if (active) {
+          setMeetings(sampleMeetings);
         }
-      ];
-      setMeetings(sampleMeetings);
-    } catch (error) {
-      console.error('Error loading meetings:', error);
-    }
-  };
+      } catch (error) {
+        console.error('Error loading meetings:', error);
+      }
+    };
+
+    loadMeetings();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -112,7 +117,6 @@ const MeetingsPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user) return;
 
     if (!validateForm()) {
       return;
@@ -122,7 +126,7 @@ const MeetingsPage = () => {
     try {
       const meetingData = {
         ...formData,
-        createdBy: user.uid
+        createdBy: 'default-user'
       };
 
       if (editingMeeting) {

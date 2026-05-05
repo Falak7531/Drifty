@@ -80,7 +80,9 @@ export const createCalendarEvent = async (eventData) => {
     };
   } catch (error) {
     console.error('Error creating calendar event:', error);
-    throw new Error(`Failed to create calendar event: ${error.result?.error?.message || error.message}`);
+    const thrownError = new Error(`Failed to create calendar event: ${error.result?.error?.message || error.message}`);
+    thrownError.cause = error;
+    throw thrownError;
   }
 };
 
@@ -113,7 +115,9 @@ export const updateCalendarEvent = async (eventId, eventData) => {
     };
   } catch (error) {
     console.error('Error updating calendar event:', error);
-    throw new Error(`Failed to update calendar event: ${error.result?.error?.message || error.message}`);
+    const thrownError = new Error(`Failed to update calendar event: ${error.result?.error?.message || error.message}`);
+    thrownError.cause = error;
+    throw thrownError;
   }
 };
 
@@ -127,7 +131,9 @@ export const deleteCalendarEvent = async (eventId) => {
     return { status: 'deleted' };
   } catch (error) {
     console.error('Error deleting calendar event:', error);
-    throw new Error(`Failed to delete calendar event: ${error.result?.error?.message || error.message}`);
+    const thrownError = new Error(`Failed to delete calendar event: ${error.result?.error?.message || error.message}`);
+    thrownError.cause = error;
+    throw thrownError;
   }
 };
 
@@ -153,6 +159,8 @@ export const getUpcomingEvents = async (maxResults = 10) => {
     }));
   } catch (error) {
     console.error('Error fetching calendar events:', error);
-    throw new Error(`Failed to fetch calendar events: ${error.result?.error?.message || error.message}`);
+    const thrownError = new Error(`Failed to fetch calendar events: ${error.result?.error?.message || error.message}`);
+    thrownError.cause = error;
+    throw thrownError;
   }
 };
