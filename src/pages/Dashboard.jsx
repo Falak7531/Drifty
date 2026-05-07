@@ -1,197 +1,245 @@
-import { Link } from 'react-router-dom';
-import { LayoutDashboard, CheckCircle, Clock, AlertTriangle, Play, Calendar, User, Activity } from 'lucide-react';
+// src/pages/Dashboard.jsx
+import { useEffect, useState } from 'react';
+import { collection, query, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { useAuth } from '../context/AuthContext';
 
-const Dashboard = () => {
-  const stats = {
-    totalTasks: 24,
-    completedTasks: 18,
-    pendingTasks: 4,
-    overdueTasks: 2,
-    inProgressTasks: 5,
-  };
+function StatCard({ label, value, color, icon }) {
+  return (
+    <div className="bg-[#18181f] border border-white/[0.06] rounded-xl p-5 flex items-center gap-4">
+      <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center shrink-0`}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-slate-400 text-sm">{label}</p>
+        <p className="text-white text-2xl font-bold mt-0.5">{value}</p>
+      </div>
+    </div>
+  );
+}
 
-  const upcomingDeadlines = [
-    { id: 1, title: 'Design homepage mockup', assignedTo: 'John Doe', deadline: new Date('2026-05-10'), status: 'In Progress', urgent: true },
-    { id: 2, title: 'Fix login bug', assignedTo: 'Jane Smith', deadline: new Date('2026-05-12'), status: 'Pending', urgent: false },
-    { id: 3, title: 'Update user documentation', assignedTo: 'Bob Johnson', deadline: new Date('2026-05-15'), status: 'To Do', urgent: false },
-  ];
+function priorityColor(p) {
+  if (p === 'high') return 'bg-red-500/15 text-red-400';
+  if (p === 'medium') return 'bg-amber-500/15 text-amber-400';
+  return 'bg-emerald-500/15 text-emerald-400';
+}
 
-  const nextMeeting = {
-    title: 'Weekly Team Standup',
-    date: new Date('2026-05-08T10:00:00'),
-    description: 'Discuss project progress and blockers',
-  };
+export default function Dashboard() {
+  const { currentUser, userProfile, isAdmin } = useAuth();
+  const [tasks, setTasks] = useState([]);
+  const [meetings, setMeetings] = useState([]);
+  const [activity, setActivity] = useState([]);
 
-  const myTasks = [
-    { id: 1, title: 'Review pull request', status: 'In Progress', deadline: new Date('2026-05-09') },
-    { id: 2, title: 'Update API documentation', status: 'Pending', deadline: new Date('2026-05-11') },
-    { id: 3, title: 'Test new feature', status: 'To Do', deadline: new Date('2026-05-13') },
-  ];
+  // Load tasks
+  useEffect(() => {
+    const q = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, []);
 
-  const recentActivity = [
-    { id: 1, action: 'Task completed: Design homepage mockup', timestamp: new Date('2026-05-05T14:30:00') },
-    { id: 2, action: 'Task updated: Fix login bug', timestamp: new Date('2026-05-05T12:15:00') },
-    { id: 3, action: 'Task assigned: Update user documentation', timestamp: new Date('2026-05-05T10:45:00') },
-    { id: 4, action: 'Task completed: Setup CI/CD pipeline', timestamp: new Date('2026-05-04T16:20:00') },
-  ];
+  // Load upcoming meetings
+  useEffect(() => {
+    const q = query(
+      collection(db, 'meetings'),
+      orderBy('date', 'asc'),
+      limit(5)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const now = new Date().toISOString().split('T')[0];
+      setMeetings(
+        snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(m => m.date >= now)
+      );
+    });
+    return unsub;
+  }, []);
+
+  // Load recent activity
+  useEffect(() => {
+    const q = query(
+      collection(db, 'activity'),
+      orderBy('timestamp', 'desc'),
+      limit(8)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setActivity(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, []);
+
+  const now = new Date();
+  const userTasks = isAdmin ? tasks : tasks.filter(t => !t.assignedTo || t.assignedTo === currentUser?.uid);
+  const total = userTasks.length;
+  const done = userTasks.filter(t => t.status === 'Done').length;
+  const inProgress = userTasks.filter(t => t.status === 'In Progress').length;
+  const overdue = userTasks.filter(t => {
+    if (!t.deadline || t.status === 'Done') return false;
+    return new Date(t.deadline) < now;
+  }).length;
+
+  const upcoming = userTasks
+    .filter(t => t.deadline && t.status !== 'Done')
+    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
+    .slice(0, 5);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-        <Link to="/tasks" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-          View All Tasks
-        </Link>
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Welcome */}
+      <div>
+        <h2 className="text-white text-2xl font-bold">
+          {isAdmin ? 'Team Overview' : 'My Dashboard'}
+        </h2>
+        <p className="text-slate-400 text-sm mt-1">
+          {isAdmin 
+            ? "Here's what's happening with your team today." 
+            : `Good ${hour()}, ${userProfile?.name || 'there'} 👋 Here's your personal overview.`
+          }
+        </p>
       </div>
 
-      {/* Stats Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
-          <div className="flex items-center">
-            <LayoutDashboard className="w-8 h-8 mr-4 text-blue-500" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Tasks</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.totalTasks}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
-          <div className="flex items-center">
-            <CheckCircle className="w-8 h-8 mr-4 text-green-500" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Completed</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.completedTasks}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
-          <div className="flex items-center">
-            <Clock className="w-8 h-8 mr-4 text-yellow-500" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pending</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.pendingTasks}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
-          <div className="flex items-center">
-            <AlertTriangle className="w-8 h-8 mr-4 text-red-500" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Overdue</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.overdueTasks}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
-          <div className="flex items-center">
-            <Play className="w-8 h-8 mr-4 text-purple-500" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">In Progress</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.inProgressTasks}</p>
-            </div>
-          </div>
-        </div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard
+          label="Total Tasks"
+          value={total}
+          color="bg-violet-500/15"
+          icon={<svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>}
+        />
+        <StatCard
+          label="Completed"
+          value={done}
+          color="bg-emerald-500/15"
+          icon={<svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+        />
+        <StatCard
+          label="In Progress"
+          value={inProgress}
+          color="bg-blue-500/15"
+          icon={<svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+        />
+        <StatCard
+          label="Overdue"
+          value={overdue}
+          color="bg-red-500/15"
+          icon={<svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
+        />
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Upcoming Deadlines */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-            <Calendar className="w-5 h-5 mr-2 text-blue-500" />
-            Upcoming Deadlines
-          </h2>
-          <div className="space-y-3">
-            {upcomingDeadlines.map(task => (
-              <div key={task.id} className={`p-4 rounded-lg border-l-4 ${task.urgent ? 'border-red-500 bg-red-50' : 'border-blue-500 bg-blue-50'}`}>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-800">{task.title}</h3>
-                    <p className="text-sm text-gray-600 flex items-center mt-1">
-                      <User className="w-4 h-4 mr-1" />
-                      {task.assignedTo}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Due: {task.deadline.toLocaleDateString()}
-                    </p>
+      {/* Progress bar */}
+      {total > 0 && (
+        <div className="bg-[#18181f] border border-white/[0.06] rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-white font-medium text-sm">Overall Progress</span>
+            <span className="text-slate-400 text-sm">{Math.round((done / total) * 100)}%</span>
+          </div>
+          <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-700"
+              style={{ width: `${(done / total) * 100}%` }}
+            />
+          </div>
+          <div className="flex gap-4 mt-3 text-xs text-slate-500">
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-violet-500" /> To Do: {userTasks.filter(t => t.status === 'To Do').length}</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500" /> In Progress: {inProgress}</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Done: {done}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Upcoming deadlines */}
+        <div className="bg-[#18181f] border border-white/[0.06] rounded-xl p-5">
+          <h3 className="text-white font-semibold mb-4">Upcoming Deadlines</h3>
+          {upcoming.length === 0 ? (
+            <p className="text-slate-500 text-sm">No upcoming deadlines 🎉</p>
+          ) : (
+            <div className="space-y-2">
+              {upcoming.map(task => {
+                const daysLeft = Math.ceil((new Date(task.deadline) - now) / 86400000);
+                return (
+                  <div key={task.id} className="flex items-center gap-3 py-2 border-b border-white/[0.04] last:border-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium truncate">{task.title}</p>
+                      <p className="text-slate-500 text-xs">{task.deadline}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${priorityColor(task.priority)}`}>
+                      {task.priority}
+                    </span>
+                    <span className={`text-xs font-medium ${daysLeft < 0 ? 'text-red-400' : daysLeft <= 2 ? 'text-amber-400' : 'text-slate-400'}`}>
+                      {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Today' : `${daysLeft}d left`}
+                    </span>
                   </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    task.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                    task.status === 'Pending' ? 'bg-orange-100 text-orange-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {task.status}
-                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Next meeting + recent activity */}
+        <div className="space-y-4">
+          {/* Next meeting */}
+          <div className="bg-[#18181f] border border-white/[0.06] rounded-xl p-5">
+            <h3 className="text-white font-semibold mb-3">Next Meeting</h3>
+            {meetings.length === 0 ? (
+              <p className="text-slate-500 text-sm">No upcoming meetings scheduled.</p>
+            ) : (
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-indigo-500/15 flex items-center justify-center shrink-0">
+                  <svg className="w-4.5 h-4.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
+                  </svg>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Next Meeting */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-            <Calendar className="w-5 h-5 mr-2 text-green-500" />
-            Next Meeting
-          </h2>
-          <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-            <h3 className="font-semibold text-lg text-green-800">{nextMeeting.title}</h3>
-            <p className="text-sm text-green-600 mt-1">
-              {nextMeeting.date.toLocaleString()}
-            </p>
-            <p className="text-sm text-gray-600 mt-2">{nextMeeting.description}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* My Tasks */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-            <CheckCircle className="w-5 h-5 mr-2 text-purple-500" />
-            My Tasks
-          </h2>
-          <div className="space-y-3">
-            {myTasks.map(task => (
-              <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
-                  <p className="font-medium text-gray-800">{task.title}</p>
-                  <p className="text-sm text-gray-500">Due: {task.deadline.toLocaleDateString()}</p>
+                  <p className="text-white text-sm font-medium">{meetings[0].title}</p>
+                  <p className="text-slate-400 text-xs mt-0.5">{meetings[0].date} at {meetings[0].time}</p>
+                  {meetings[0].description && (
+                    <p className="text-slate-500 text-xs mt-1 line-clamp-2">{meetings[0].description}</p>
+                  )}
                 </div>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  task.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                  task.status === 'Pending' ? 'bg-orange-100 text-orange-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
-                  {task.status}
-                </span>
               </div>
-            ))}
+            )}
           </div>
-        </div>
 
-        {/* Recent Activity */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-            <Activity className="w-5 h-5 mr-2 text-indigo-500" />
-            Recent Activity
-          </h2>
-          <div className="space-y-3">
-            {recentActivity.map(activity => (
-              <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2 flex-shrink-0"></div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-800">{activity.action}</p>
-                  <p className="text-xs text-gray-500">{activity.timestamp.toLocaleString()}</p>
-                </div>
+          {/* Recent activity */}
+          <div className="bg-[#18181f] border border-white/[0.06] rounded-xl p-5">
+            <h3 className="text-white font-semibold mb-3">Recent Activity</h3>
+            {activity.length === 0 ? (
+              <p className="text-slate-500 text-sm">No recent activity yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {(isAdmin ? activity : activity.filter(a => a.uid === currentUser?.uid)).slice(0, 5).map(a => (
+                  <div key={a.id} className="flex items-start gap-2.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 shrink-0" />
+                    <div>
+                      <p className="text-slate-300 text-xs">{a.message}</p>
+                      <p className="text-slate-600 text-xs">{timeAgo(a.timestamp?.toDate?.())}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
     </div>
   );
-};
+}
 
-export default Dashboard;
+function hour() {
+  const h = new Date().getHours();
+  if (h < 12) return 'morning';
+  if (h < 18) return 'afternoon';
+  return 'evening';
+}
+
+function timeAgo(date) {
+  if (!date) return '';
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}

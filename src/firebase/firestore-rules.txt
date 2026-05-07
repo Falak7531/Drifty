@@ -1,0 +1,37 @@
+// src/firebase/firestore-rules.txt
+// Firestore Security Rules for the Worry App
+// Copy and paste these rules into Firebase Console → Firestore Database → Rules
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to read/write their own user profile
+    match /users/{userId} {
+      allow read: if request.auth.uid == userId || isAdmin();
+      allow create: if request.auth.uid == userId;
+      allow update, delete: if request.auth.uid == userId || isAdmin();
+    }
+
+    // Tasks: Users can create, read, and modify tasks
+    match /tasks/{taskId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Meetings: All authenticated users can read/write meetings
+    match /meetings/{meetingId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Activity: Log entries visible to all, only system/admin can write
+    match /activity/{activityId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Helper functions
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}
